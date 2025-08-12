@@ -1,13 +1,14 @@
+/* eslint-disable */
 import * as net from 'node:net'
+/* eslint-enable */
 import { EventEmitter } from 'node:events'
 import logger from './logger.mjs'
 import { config } from './config.mjs'
-import { ProtocolServer } from './protocol/protocol.server.mjs'
+import { NodeSocketReactor } from '@foxssake/trimsock-node'
 
 const defaultModules = [
   'metrics/metrics.mjs',
   'relay/relay.mjs',
-  'echo/echo.mjs',
   'hosts/host.mjs',
   'connection/connection.mjs'
 ]
@@ -16,10 +17,10 @@ const hooks = []
 
 export class Noray extends EventEmitter {
   /** @type {net.Server} */
-  #socket
+  #server
 
-  /** @type {ProtocolServer} */
-  #protocolServer
+  /** @type {NodeSocketReactor} */
+  #reactor
 
   #log = logger
 
@@ -36,10 +37,10 @@ export class Noray extends EventEmitter {
 
     this.#log.info('Starting Noray')
 
-    const socket = net.createServer()
-
-    this.#socket = socket
-    this.#protocolServer = new ProtocolServer()
+    this.#reactor = new NodeSocketReactor()
+      .onError((command, exchange, error) => {
+        exchange.failOrSend({ name: command.name, data: '' + error })
+      })
 
     // Import modules for hooks
     for (const m of modules) {
@@ -49,23 +50,23 @@ export class Noray extends EventEmitter {
 
     // Run hooks
     this.#log.info('Running %d hooks', hooks.length)
-    hooks.forEach(h => h(this))
-    this.#log.info('Hooks done')
+    const hookPromises = hooks.map(h => h(this))
+    this.#log.info('Hooks launched')
 
-    socket.listen(config.socket.port, config.socket.host, () => {
+    // Start server
+    this.#log.info('Starting TCP server')
+    this.#server = this.#reactor.serve().listen(config.socket.port, config.socket.host, () => {
       this.#log.info(
         'Listening on %s:%s',
         config.socket.host, config.socket.port
       )
 
-      socket.on('error', err => {
+      this.#server.on('error', err => {
         this.#log.error('Listen socket encountered an error!')
         this.#log.error(err)
       })
 
-      socket.on('connection', conn => {
-        this.#protocolServer.attach(conn)
-        conn.on('close', () => this.#protocolServer.detach(conn))
+      this.#server.on('connection', conn => {
         conn.on('error', err => {
           this.#log.error('Connection socket encountered an error!')
           this.#log.error(err)
@@ -74,16 +75,20 @@ export class Noray extends EventEmitter {
 
       this.emit('listening', config.socket.port, config.socket.host)
     })
+
+    this.#log.info('Waiting for hooks to finish')
+    await Promise.all(hookPromises)
+    this.#log.info('Started noray in %f ms', process.uptime() * 1000.0)
   }
 
   shutdown () {
     this.#log.info('Shutting down')
 
     this.emit('close')
-    this.#socket.close()
+    this.#server.close()
   }
 
-  get protocolServer () {
-    return this.#protocolServer
+  get reactor () {
+    return this.#reactor
   }
 }

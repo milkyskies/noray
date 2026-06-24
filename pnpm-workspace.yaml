@@ -1,0 +1,7 @@
+# trimsock-node@0.19.0 declares "@foxssake/trimsock-js": "*", which pnpm
+# otherwise satisfies with the stale 0.17.0 already in the lockfile. 0.17.0
+# shares one parser buffer across all TCP connections, so a single malformed
+# frame permanently wedges command dispatch (foxssake/trimsock#57, fixed in
+# 0.19.0). Force every resolution onto 0.19.0.
+overrides:
+  "@foxssake/trimsock-js": "0.19.0"

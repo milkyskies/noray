@@ -4,16 +4,19 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@foxssake/trimsock-js': 0.19.0
+
 importers:
 
   .:
     dependencies:
       '@foxssake/trimsock-js':
-        specifier: ^0.17.0
-        version: 0.17.0(typescript@6.0.3)
+        specifier: 0.19.0
+        version: 0.19.0(typescript@6.0.3)
       '@foxssake/trimsock-node':
-        specifier: ^0.17.0
-        version: 0.17.0(typescript@6.0.3)
+        specifier: ^0.19.0
+        version: 0.19.0(typescript@6.0.3)
       dotenv:
         specifier: ^16.0.3
         version: 16.5.0
@@ -105,13 +108,13 @@ packages:
     resolution: {integrity: sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@foxssake/trimsock-js@0.17.0':
-    resolution: {integrity: sha512-s81agKjOeUOZ/E+3SdjIntEnc7r879QbREBsVPmDvHuw2tDUdq7SsWJomNjwdFpt8Vlqj7WVTQ+pioo2T5De2A==}
+  '@foxssake/trimsock-js@0.19.0':
+    resolution: {integrity: sha512-B99j3dsb68laOGztb9SbygoCF9pASl3hXZI4GGSFeEzz6NQiU8xgDjYmVXHLQDx9lA3x2DrmF/3UTFG2Gu4/VQ==}
     peerDependencies:
       typescript: ^5.0.0
 
-  '@foxssake/trimsock-node@0.17.0':
-    resolution: {integrity: sha512-28SDnnfICDCYD8ROA4PtwGwa1gc8piBxbXwl7qqOFqUwpGYpHMgMWzeYVCs1nQ4oMT66UQ4QpJMPrsSMOQTl0Q==}
+  '@foxssake/trimsock-node@0.19.0':
+    resolution: {integrity: sha512-JVcE8yLuT+82AvffPBtJdmKpM/I5SpJ5EVae4/WrKZzI6uif63Af/qcUEU8mZYYV/45kwdbtW3UWJNYTF+V9gA==}
     engines: {node: '>=18.16.0'}
     peerDependencies:
       typescript: ^5.0.0
@@ -1331,13 +1334,13 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@foxssake/trimsock-js@0.17.0(typescript@6.0.3)':
+  '@foxssake/trimsock-js@0.19.0(typescript@6.0.3)':
     dependencies:
       typescript: 6.0.3
 
-  '@foxssake/trimsock-node@0.17.0(typescript@6.0.3)':
+  '@foxssake/trimsock-node@0.19.0(typescript@6.0.3)':
     dependencies:
-      '@foxssake/trimsock-js': 0.17.0(typescript@6.0.3)
+      '@foxssake/trimsock-js': 0.19.0(typescript@6.0.3)
       typescript: 6.0.3
 
   '@humanfs/core@0.19.2':

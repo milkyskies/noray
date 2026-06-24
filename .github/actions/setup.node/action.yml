@@ -8,7 +8,9 @@ inputs:
   pnpm-version:
     description: 'pnpm version'
     required: false
-    default: '8'
+    # Match the production Docker image (ghcr.io/pnpm/pnpm:11). pnpm 8 cannot
+    # read dependency overrides from pnpm-workspace.yaml and errors on the file.
+    default: '11'
 runs:
   using: composite
   steps:

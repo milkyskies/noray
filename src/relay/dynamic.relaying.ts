@@ -18,6 +18,13 @@ export class DynamicRelaying {
   private buffers = new Map<string, Buffer[]>();
 
   /**
+   * @param isAllowedSender Only senders passing this check get a relay
+   */
+  constructor(
+    private isAllowedSender: (sender: NetAddress) => boolean = () => true,
+  ) {}
+
+  /**
    * Apply dynamic relay creation to relay handler.
    */
   apply(relayHandler: UDPRelayHandler) {
@@ -53,6 +60,10 @@ export class DynamicRelaying {
   ) {
     // Unknown host or client already has relay, ignore
     if (senderRelay || !targetRelay) {
+      return;
+    }
+
+    if (!this.isAllowedSender(senderAddress)) {
       return;
     }
 
@@ -93,6 +104,9 @@ export class DynamicRelaying {
 /**
  * Apply dynamic relaying to relay handler.
  */
-export function useDynamicRelay(relayHandler: UDPRelayHandler) {
-  new DynamicRelaying().apply(relayHandler);
+export function useDynamicRelay(
+  relayHandler: UDPRelayHandler,
+  isAllowedSender?: (sender: NetAddress) => boolean,
+) {
+  new DynamicRelaying(isAllowedSender).apply(relayHandler);
 }

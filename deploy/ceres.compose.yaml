@@ -1,0 +1,23 @@
+# Fork-only deploy file for ceres (Dokploy compose). Keep out of upstream PRs.
+services:
+  noray:
+    build: { context: .., dockerfile: Dockerfile }
+    restart: unless-stopped
+    network_mode: host        # keeps real client source IP:port for relays, no docker-proxy for 50 ports
+    environment:
+      NORAY_AUTH_KEY: ${NORAY_AUTH_KEY}
+      NORAY_AUTH_TIMEOUT: 10s
+      NORAY_SOCKET_HOST: 0.0.0.0
+      NORAY_SOCKET_PORT: "8890"
+      NORAY_UDP_REGISTRAR_PORT: "8809"
+      NORAY_UDP_RELAY_PORTS: 49152-49201          # 50 relay ports
+      NORAY_UDP_RELAY_MAX_GLOBAL_TRAFFIC: 1220kb  # ~1.25 MB/s = ~10 Mbit/s
+      NORAY_UDP_RELAY_MAX_INDIVIDUAL_TRAFFIC: 128kb  # ~1 Mbit/s per relay
+      NORAY_UDP_RELAY_MAX_LIFETIME_DURATION: 4hr
+      NORAY_UDP_RELAY_MAX_LIFETIME_TRAFFIC: 2gb
+      NORAY_UDP_RELAY_TIMEOUT: 30s
+      NORAY_HTTP_HOST: 127.0.0.1                  # metrics stay local
+      NORAY_HTTP_PORT: "8891"
+      NORAY_LOGLEVEL: info
+    mem_limit: 256m
+    cpus: 0.5

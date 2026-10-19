@@ -7,6 +7,7 @@ import { NorayEvents } from "./events.ts";
 export type NorayHook = (noray: Noray) => void;
 
 const defaultModules = [
+  "auth/auth.ts",
   "metrics/metrics.ts",
   "relay/relay.ts",
   "hosts/host.ts",
@@ -60,6 +61,10 @@ export class Noray extends EventEmitter {
       hostname: config.socket.host,
       port: config.socket.port,
       socket: {
+        open: (socket) => {
+          NorayEvents.emit("connection-open", socket);
+        },
+
         error: (socket, error) => {
           this.log.error(
             {

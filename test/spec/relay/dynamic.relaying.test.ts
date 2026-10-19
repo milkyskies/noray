@@ -5,7 +5,7 @@ import { sleep } from "../../../src/utils.ts";
 import { useDynamicRelay } from "../../../src/relay/dynamic.relaying.ts";
 import { RelayEntry } from "../../../src/relay/relay.entry.ts";
 import { NetAddress } from "../../../src/relay/net.address.ts";
-import { UDPSocketPool } from "../../../src/relay/udp.socket.pool.ts";
+import { UDPSocket, UDPSocketPool } from "../../../src/relay/udp.socket.pool.ts";
 
 describe("DynamicRelaying", () => {
   let clock: sinon.SinonFakeTimers;
@@ -17,7 +17,6 @@ describe("DynamicRelaying", () => {
   test("should create relay", async () => {
     // Given
     const socketPool = sinon.createStubInstance(UDPSocketPool);
-    socketPool.getPort.returns(10000);
 
     const relayHandler = sinon.createStubInstance(UDPRelayHandler);
     relayHandler.on.callThrough();
@@ -60,7 +59,7 @@ describe("DynamicRelaying", () => {
     const createdRelay = relayHandler.createRelay.lastCall.args[0];
     expect(createdRelay, "Relay was not created!").not.toBeNil();
     expect(createdRelay.address).toBe(senderAddress);
-    expect(createdRelay.port).toBe(10000);
+    // Port is assigned by createRelay(), not by dynamic relaying
 
     const sent = relayHandler.relay
       .getCalls()
@@ -150,6 +149,57 @@ describe("DynamicRelaying", () => {
     // Then
     expect(relayHandler.createRelay.notCalled).toBeTrue();
     expect(relayHandler.relay.notCalled).toBeTrue();
+  });
+
+  describe("with real relay handler", () => {
+    const targetRelay = new RelayEntry({
+      address: new NetAddress({ address: "87.54.0.16", port: 16752 }),
+      port: 10000,
+    });
+    const senderAddress = new NetAddress({ address: "97.32.4.16", port: 32775 });
+
+    function setup(isAllowedSender?: (sender: NetAddress) => boolean) {
+      const socketPool = new UDPSocketPool();
+      for (const port of [10000, 10001, 10002])
+        socketPool.addSocket({ port, send: () => true, close() {} } as unknown as UDPSocket);
+      const relayHandler = new UDPRelayHandler({ socketPool });
+      relayHandler.createRelay(targetRelay);
+      useDynamicRelay(relayHandler, isAllowedSender);
+      return { socketPool, relayHandler };
+    }
+
+    async function drop(relayHandler: UDPRelayHandler) {
+      relayHandler.relay(Buffer.from("hi"), senderAddress, targetRelay.port);
+      clock.restore();
+      await sleep(0.05);
+    }
+
+    test("should not create relay for disallowed sender", async () => {
+      const { relayHandler } = setup(() => false);
+      await drop(relayHandler);
+      expect(relayHandler.relayTable.length).toBe(1);
+    });
+
+    test("should create relay for allowed sender", async () => {
+      const { relayHandler } = setup(
+        (sender) => sender.address === senderAddress.address,
+      );
+      await drop(relayHandler);
+      expect(relayHandler.relayTable.length).toBe(2);
+    });
+
+    test("should use exactly one port per dynamic relay", async () => {
+      const { relayHandler, socketPool } = setup();
+      const before = socketPool["freePorts"].length;
+      await drop(relayHandler);
+      expect(socketPool["freePorts"].length).toBe(before - 1);
+
+      const created = relayHandler.relayTable.find((r) =>
+        r.address.equals(senderAddress),
+      )!;
+      relayHandler.freeRelay(created);
+      expect(socketPool["freePorts"].length).toBe(before);
+    });
   });
 
   afterEach(() => {

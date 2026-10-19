@@ -88,7 +88,12 @@ Noray.hook(async (noray) => {
   constrainTraffic(udpRelayHandler, config.udpRelay.maxLifetimeTraffic!);
 
   log.info("Applying dynamic relaying");
-  useDynamicRelay(udpRelayHandler);
+  if (config.auth.key) {
+    log.info("Auth is on, dynamic relays only for known host addresses");
+    useDynamicRelay(udpRelayHandler, isKnownHostAddress);
+  } else {
+    useDynamicRelay(udpRelayHandler);
+  }
 
   log.info("Adding shutdown hooks");
   noray.on("close", () => {
@@ -111,6 +116,17 @@ Noray.hook(async (noray) => {
     udpRelayHandler.clear();
   });
 });
+
+const stripV4Prefix = (address?: string) => address?.replace(/^::ffff:/, "");
+
+function isKnownHostAddress(sender: NetAddress): boolean {
+  const address = stripV4Prefix(sender.address);
+  return [...hostRepository.list()].some(
+    (host) =>
+      stripV4Prefix(host.socket.remoteAddress) === address ||
+      stripV4Prefix(host.remoteAddress) === address,
+  );
+}
 
 async function bindPortForRelaying(
   udpSocketPool: UDPSocketPool,

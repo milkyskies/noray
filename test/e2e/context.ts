@@ -26,7 +26,9 @@ export class End2EndContext {
   }
 
   // TODO: Use actual trimsock clients instead
-  async connect(): Promise<ClientSocket> {
+  async connect(
+    handlers: { close?: () => void } = {},
+  ): Promise<ClientSocket> {
     const socket = await Bun.connect({
       hostname: config.socket.host,
       port: config.socket.port,
@@ -36,6 +38,7 @@ export class End2EndContext {
           // Concat incoming data to socket buffer
           socket.data = Buffer.concat([socket.data, data]);
         },
+        close: () => handlers.close?.(),
       },
     });
 

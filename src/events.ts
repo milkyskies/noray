@@ -50,6 +50,7 @@ export class TypedEventBus<T extends EventMap> extends EventBus {
 
 // Application specific events
 export class NorayEventBus extends TypedEventBus<{
+  "connection-open": (socket: Bun.Socket<undefined>) => void;
   "connection-close": (socket: Bun.Socket<undefined>) => void;
 }> { }
 

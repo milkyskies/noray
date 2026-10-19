@@ -64,6 +64,11 @@ export function readConfig(env: ConfigEnv) {
       ),
     },
 
+    auth: {
+      key: env.NORAY_AUTH_KEY || undefined,
+      timeout: required(duration(env.NORAY_AUTH_TIMEOUT ?? "10s")),
+    },
+
     loglevel: getLogLevel(),
   };
 }
@@ -83,6 +88,10 @@ export type PidConfig = NorayConfig["pid"];
 export type SocketConfig = NorayConfig["socket"];
 export type HttpConfig = NorayConfig["http"];
 export type UdpRelayConfig = NorayConfig["udpRelay"];
+export type AuthConfig = NorayConfig["auth"];
 
 export const config = readLiveConfig();
-logger.info({ config }, "Loaded application config");
+logger.info(
+  { config: { ...config, auth: { ...config.auth, key: config.auth.key && "***" } } },
+  "Loaded application config",
+);

@@ -115,6 +115,39 @@ listen on, e.g. '0.0.0.0' or 'localhost'.
 
 [enable IPv6 in Docker]: https://docs.docker.com/config/daemon/ipv6/
 
+## Authentication
+
+By default, anyone who can reach *noray* can use it. To make a private
+instance, set a shared key with `NORAY_AUTH_KEY`. When it is set, the first
+command on every TCP connection must be `auth <key>`:
+
+```
+auth 3f1c...e9a2
+register-host
+```
+
+- On success, there is no reply, and later commands run as normal.
+- On a wrong or missing key, or any other first command, *noray* closes the
+  socket without a reply. Repeating `auth` on an authenticated socket is ignored.
+- A socket that sends no command within `NORAY_AUTH_TIMEOUT` (default `10s`) is
+  closed.
+- With the key set, UDP relays are created dynamically only for senders whose IP
+  matches a registered host.
+- When `NORAY_AUTH_KEY` is unset or empty, *noray* accepts every command.
+
+The key must use URL-safe characters only (no spaces, newlines or `\`).
+Generate one with `openssl rand -hex 32`. It is sent in clear text; there is no
+TLS.
+
+Example with netcat (the connection stays open, so `register-host` gets a reply;
+without the `auth` line the socket would be closed):
+
+```
+$ (echo "auth $NORAY_AUTH_KEY"; echo "register-host"; sleep 1) | nc localhost 8890
+set-oid ...
+set-pid ...
+```
+
 ## Documentation
 
 ### Protocol

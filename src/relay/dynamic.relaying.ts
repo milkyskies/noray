@@ -70,10 +70,10 @@ export class DynamicRelaying {
       "Creating dynamic relay",
     );
     this.buffers.set(key, [message]);
-    const port = relayHandler.socketPool.getPort();
+    // createRelay() takes the port from the pool
     const relay = new RelayEntry({
       address: senderAddress,
-      port,
+      port: 0,
     });
     relayHandler.createRelay(relay);
 

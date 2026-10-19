@@ -3,7 +3,20 @@ services:
   noray:
     build: { context: .., dockerfile: Dockerfile }
     restart: unless-stopped
-    network_mode: host        # keeps real client source IP:port for relays, no docker-proxy for 50 ports
+    # Hardened: own bridge network, non-root, read-only, no capabilities.
+    # Docker's DNAT keeps the client's source IP:port, which the relays need.
+    ports:
+      - "8890:8890/tcp"
+      - "8809:8809/udp"
+      - "49152-49201:49152-49201/udp"
+    user: "bun"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
     environment:
       NORAY_AUTH_KEY: ${NORAY_AUTH_KEY}
       NORAY_AUTH_TIMEOUT: 10s

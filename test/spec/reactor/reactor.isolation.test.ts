@@ -1,7 +1,6 @@
-import { describe, it, before, after } from "node:test";
-import assert from "node:assert";
+import { describe, it, beforeAll, afterAll, expect } from "bun:test";
 import * as net from "node:net";
-import { NodeSocketReactor } from "@foxssake/trimsock-node";
+import { BunSocketReactor } from "@foxssake/trimsock-bun";
 
 // Regression test for the production hang traced to trimsock-js 0.17.0, where a
 // single shared parser buffer was used for every TCP connection (upstream issue
@@ -9,12 +8,12 @@ import { NodeSocketReactor } from "@foxssake/trimsock-node";
 // silently stopped command dispatch for ALL connections until the process was
 // restarted. The per-connection-reader fix (trimsock#73) landed in 0.19.0.
 describe("Reactor cross-connection isolation", () => {
-  let reactor: NodeSocketReactor;
-  let server: net.Server;
+  let reactor: BunSocketReactor;
+  let server: Bun.TCPSocketListener;
   let port: number;
 
-  before(async () => {
-    reactor = new NodeSocketReactor().onError((command, exchange, error) => {
+  beforeAll(() => {
+    reactor = new BunSocketReactor().onError((command, exchange, error) => {
       exchange.failOrSend({ name: command?.name ?? "error", text: "" + error });
     });
 
@@ -22,15 +21,12 @@ describe("Reactor cross-connection isolation", () => {
       exchange.send({ name: "pong", params: [] });
     });
 
-    server = reactor.serve();
-    server.listen(0);
-
-    await new Promise<void>((resolve) => server.once("listening", resolve));
-    port = (server.address() as net.AddressInfo).port;
+    server = reactor.listen({ hostname: "127.0.0.1", port: 0, socket: {} });
+    port = server.port;
   });
 
   it("a malformed frame on one connection must not stop dispatch on another", async () => {
-    const poison = net.createConnection({ port });
+    const poison = net.createConnection({ port, host: "127.0.0.1" });
     await new Promise<void>((resolve) => poison.once("connect", resolve));
 
     // Open a quoted token and never close it: with a shared parser this leaves
@@ -39,7 +35,7 @@ describe("Reactor cross-connection isolation", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const healthy = net.createConnection({ port });
+    const healthy = net.createConnection({ port, host: "127.0.0.1" });
     healthy.setEncoding("utf8");
     await new Promise<void>((resolve) => healthy.once("connect", resolve));
 
@@ -58,11 +54,13 @@ describe("Reactor cross-connection isolation", () => {
 
     const response = await reply;
 
-    assert.match(response, /pong/, "Second connection should still receive pong");
+    expect(response).toMatch(/pong/);
 
     poison.destroy();
     healthy.destroy();
   });
 
-  after(() => server.close());
+  afterAll(() => {
+    server.stop(true);
+  });
 });
